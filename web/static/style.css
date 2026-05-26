@@ -1,0 +1,21 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+.contenedor { display: flex; gap: 20px; padding: 20px; max-width: 1200px; margin: auto; }
+h1 { text-align: center; padding: 20px; background: #2c3e50; color: white; }
+.panel-lista { width: 320px; background: white; border-radius: 10px; padding: 15px; 
+               height: 85vh; overflow-y: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.panel-detalle { flex: 1; background: white; border-radius: 10px; padding: 20px;
+                 height: 85vh; overflow-y: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.tarjeta-factura { display: block; padding: 12px; margin: 8px 0; border: 2px solid #e0e0e0;
+                   border-radius: 8px; text-decoration: none; color: #333; transition: all 0.2s; }
+.tarjeta-factura:hover { border-color: #3498db; background: #f0f8ff; }
+.seleccionada { border-color: #2980b9 !important; background: #e8f4fc !important; }
+.tipo-badge { background: #27ae60; color: white; padding: 2px 8px; 
+              border-radius: 20px; font-size: 0.75em; float: right; }
+.tabla-datos { width: 100%; border-collapse: collapse; margin: 15px 0; }
+.tabla-datos td { padding: 10px; border-bottom: 1px solid #eee; }
+.tabla-datos tr:hover { background: #f9f9f9; }
+.texto-crudo { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px;
+               font-size: 0.85em; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+.placeholder { text-align: center; padding: 100px 20px; color: #aaa; font-size: 1.2em; }
+.vacio { color: #aaa; text-align: center; padding: 20px; }

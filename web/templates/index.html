@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visor de Facturas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="contenedor">
+    <h1>Visor de Facturas</h1>
+
+    <div class="panel-lista">
+        <h2>Facturas procesadas ({{ facturas|length }})</h2>
+
+        {% for f in facturas %}
+        <a href="/factura/{{ f['id'] }}" class="tarjeta-factura {% if factura_seleccionada and factura_seleccionada['id'] == f['id'] %}seleccionada{% endif %}">
+            <strong>{{ f['nombre_archivo'] }}</strong><br>
+            <span>{{ f['proveedor'] or 'Proveedor desconocido' }}</span><br>
+            <span>{{ f['total'] or 'Sin total' }}</span>
+            <span class="tipo-badge">{{ f['tipo_pdf'] }}</span>
+        </a>
+        {% endfor %}
+
+        {% if not facturas %}
+        <p class="vacio">No hay facturas procesadas aun.<br>Corre primero el main.py</p>
+        {% endif %}
+    </div>
+
+    <div class="panel-detalle">
+        {% if factura_seleccionada %}
+        <h2>{{ factura_seleccionada['nombre_archivo'] }}</h2>
+        <table class="tabla-datos">
+            <tr>
+                <td><strong>Banco</strong></td>
+                <td>{{ factura_seleccionada['banco'] or 'No detectado' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Proveedor</strong></td>
+                <td>{{ factura_seleccionada['proveedor'] or 'No detectado' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Total</strong></td>
+                <td>{{ factura_seleccionada['total'] or 'No detectado' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Fecha</strong></td>
+                <td>{{ factura_seleccionada['fecha'] or 'No detectada' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Tipo</strong></td>
+                <td>{{ factura_seleccionada['tipo_pdf'] }}</td>
+            </tr>
+        </table>
+        <h3>Texto extraido:</h3>
+        <pre class="texto-crudo">{{ factura_seleccionada['texto_extraido'] }}</pre>
+        {% else %}
+        <div class="placeholder">
+            <p>Selecciona una factura de la lista para ver sus detalles</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>
