@@ -16,7 +16,7 @@ Extrae ÚNICAMENTE los siguientes datos y responde SOLO con JSON válido, sin ex
 
 {
   "proveedor": "nombre de la empresa o tienda emisora",
-  "total": "valor total a pagar (solo el número, sin símbolo de moneda)",
+  "total": "valor total a pagar con sus separadores originales (puntos, comas, etc.)",
   "fecha": "fecha del documento en formato DD/MM/YYYY",
   "banco": "nombre del banco si aparece (Bancolombia, Davivienda, Nequi, BBVA, etc.), sino null",
   "tipo_documento": "factura | recibo | comprobante | otro"

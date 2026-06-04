@@ -2,65 +2,131 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Facturas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
+<h1>📄 Facturas</h1>
+
+<!-- ZONA DE SUBIDA -->
+<div class="upload-box">
+    <label for="inputArchivo" class="btn-subir">
+        📷 Tomar o subir foto
+    </label>
+    <input type="file" id="inputArchivo" accept="image/*,application/pdf" capture="environment" style="display:none">
+    <div id="preview-container" style="display:none">
+        <img id="preview-img" src="" alt="Vista previa">
+    </div>
+    <button id="btnProcesar" class="btn-procesar" style="display:none">⚡ Procesar factura</button>
+    <div id="resultado" class="resultado" style="display:none"></div>
+    <div id="spinner" class="spinner" style="display:none">Analizando con IA...</div>
+</div>
+
+<!-- LISTA DE FACTURAS -->
 <div class="contenedor">
-    <h1>Visor de Facturas</h1>
-
     <div class="panel-lista">
-        <h2>Facturas procesadas ({{ facturas|length }})</h2>
-
+        <h2>Historial ({{ facturas|length }})</h2>
         {% for f in facturas %}
         <a href="/factura/{{ f['id'] }}" class="tarjeta-factura {% if factura_seleccionada and factura_seleccionada['id'] == f['id'] %}seleccionada{% endif %}">
-            <strong>{{ f['nombre_archivo'] }}</strong><br>
-            <span>{{ f['proveedor'] or 'Proveedor desconocido' }}</span><br>
-            <span>{{ f['total'] or 'Sin total' }}</span>
             <span class="tipo-badge">{{ f['tipo_pdf'] }}</span>
+            <strong>{{ f['proveedor'] or 'Proveedor desconocido' }}</strong><br>
+            <span class="monto">$ {{ f['total'] or 'Sin total' }}</span><br>
+            <span class="fecha-small">{{ f['fecha'] or 'Sin fecha' }}</span>
         </a>
         {% endfor %}
-
         {% if not facturas %}
-        <p class="vacio">No hay facturas procesadas aun.<br>Corre primero el main.py</p>
+        <p class="vacio">Aún no hay facturas.<br>¡Sube la primera!</p>
         {% endif %}
     </div>
 
+    {% if factura_seleccionada %}
     <div class="panel-detalle">
-        {% if factura_seleccionada %}
         <h2>{{ factura_seleccionada['nombre_archivo'] }}</h2>
         <table class="tabla-datos">
-            <tr>
-                <td><strong>Banco</strong></td>
-                <td>{{ factura_seleccionada['banco'] or 'No detectado' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Proveedor</strong></td>
-                <td>{{ factura_seleccionada['proveedor'] or 'No detectado' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Total</strong></td>
-                <td>{{ factura_seleccionada['total'] or 'No detectado' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Fecha</strong></td>
-                <td>{{ factura_seleccionada['fecha'] or 'No detectada' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Tipo</strong></td>
-                <td>{{ factura_seleccionada['tipo_pdf'] }}</td>
-            </tr>
+            <tr><td><strong>Proveedor</strong></td><td>{{ factura_seleccionada['proveedor'] or 'No detectado' }}</td></tr>
+            <tr><td><strong>Total</strong></td><td>{{ factura_seleccionada['total'] or 'No detectado' }}</td></tr>
+            <tr><td><strong>Fecha</strong></td><td>{{ factura_seleccionada['fecha'] or 'No detectada' }}</td></tr>
+            <tr><td><strong>Banco</strong></td><td>{{ factura_seleccionada['banco'] or 'No detectado' }}</td></tr>
+            <tr><td><strong>Tipo</strong></td><td>{{ factura_seleccionada['tipo_pdf'] }}</td></tr>
         </table>
-        <h3>Texto extraido:</h3>
+        <h3>Texto extraído:</h3>
         <pre class="texto-crudo">{{ factura_seleccionada['texto_extraido'] }}</pre>
-        {% else %}
-        <div class="placeholder">
-            <p>Selecciona una factura de la lista para ver sus detalles</p>
-        </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
+
+<script>
+const input     = document.getElementById('inputArchivo');
+const btnP      = document.getElementById('btnProcesar');
+const spinner   = document.getElementById('spinner');
+const resultado = document.getElementById('resultado');
+const previewC  = document.getElementById('preview-container');
+const previewI  = document.getElementById('preview-img');
+
+// Muestra preview de la imagen seleccionada
+input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Mostrar preview solo si es imagen
+    if (file.type.startsWith('image/')) {
+        previewI.src = URL.createObjectURL(file);
+        previewC.style.display = 'block';
+    } else {
+        previewC.style.display = 'none';
+    }
+
+    btnP.style.display = 'block';
+    resultado.style.display = 'none';
+});
+
+// Envía el archivo a la API
+btnP.addEventListener('click', async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    btnP.style.display  = 'none';
+    spinner.style.display = 'block';
+    resultado.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    try {
+        const res  = await fetch('/api/procesar', { method: 'POST', body: formData });
+        const json = await res.json();
+
+        spinner.style.display = 'none';
+        resultado.style.display = 'block';
+
+        if (json.ok) {
+            const d = json.datos;
+            resultado.className = 'resultado exito';
+            resultado.innerHTML = `
+                <strong>✅ Procesado</strong><br>
+                <b>Proveedor:</b> ${d.proveedor || '—'}<br>
+                <b>Total:</b> ${d.total || '—'}<br>
+                <b>Fecha:</b> ${d.fecha || '—'}<br>
+                <b>Banco:</b> ${d.banco || '—'}
+            `;
+            // Recarga el historial después de 1.5s
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            resultado.className = 'resultado error';
+            resultado.innerHTML = `❌ Error: ${json.error}`;
+            btnP.style.display = 'block';
+        }
+    } catch (e) {
+        spinner.style.display = 'none';
+        resultado.className = 'resultado error';
+        resultado.innerHTML = '❌ No se pudo conectar al servidor.';
+        resultado.style.display = 'block';
+        btnP.style.display = 'block';
+    }
+});
+</script>
 
 </body>
 </html>
