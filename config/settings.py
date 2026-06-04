@@ -16,3 +16,7 @@ DB_PATH = os.path.join(BASE_DIR, "database", "facturas.db")
 TESSERACT_PATH = r"C:\Users\cmarroquin\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 
 POPPLER_PATH = r"C:\Users\cmarroquin\Downloads\Release-26.02.0-0\poppler-26.02.0\Library\bin"
+
+GROQ_API_KEY = ""
+GROQ_MODEL_TEXTO = "llama-3.3-70b-versatile"
+GROQ_MODEL_VISION = "meta-llama/llama-4-scout-17b-16e-instruct"

@@ -5,28 +5,28 @@ from extractors.pdf_text import extraer_texto_pdf
 from extractors.pdf_ocr import extraer_texto_ocr, es_pdf_escaneado
 from extractors.cleaner import limpiar_texto, extraer_patrones
 from models.factura import Factura
-
+from extractors.ai_extractor import extraer_texto_con_ia
 
 def procesar_pdf(ruta_pdf):
-    """
-    Orquesta el procesamiento de un PDF.
-    Decide si usar lectura normal u OCR, extrae datos y guarda en BD.
-    """
-
     nombre = os.path.basename(ruta_pdf)
     print(f"\nProcesando: {nombre}")
 
     if es_pdf_escaneado(ruta_pdf):
-        print("Tipo: escaneado... usando OCR")
+        print("Tipo: escaneado → OCR + IA")
         tipo = "escaneado"
         texto_crudo = extraer_texto_ocr(ruta_pdf)
     else:
-        print("Tipo: digital... extraccion directa")
+        print("Tipo: digital → extracción directa + IA")
         tipo = "digital"
         texto_crudo = extraer_texto_pdf(ruta_pdf)
 
     texto_limpio = limpiar_texto(texto_crudo)
-    datos = extraer_patrones(texto_limpio)
+
+    # IA reemplaza los regex, pero si falla usamos regex como respaldo
+    datos = extraer_texto_con_ia(texto_limpio)
+    if not any(datos.values()):
+        print("IA no respondió, usando regex como respaldo...")
+        datos = extraer_patrones(texto_limpio)
 
     factura = Factura(
         nombre_archivo=nombre,
@@ -48,10 +48,10 @@ def procesar_pdf(ruta_pdf):
         factura.proveedor
     )
 
-    print(f"Proveedor: {factura.proveedor or 'No detectado'}")
-    print(f"Banco: {factura.banco or 'No detectado'}")
-    print(f"Total: {factura.total or 'No detectado'}")
-    print(f"Fecha: {factura.fecha or 'No detectada'}")
+    print(f"Proveedor : {factura.proveedor or 'No detectado'}")
+    print(f"Banco     : {factura.banco     or 'No detectado'}")
+    print(f"Total     : {factura.total     or 'No detectado'}")
+    print(f"Fecha     : {factura.fecha     or 'No detectada'}")
     return factura
 
 
