@@ -13,29 +13,59 @@ client = Groq(api_key=GROQ_API_KEY)
 EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
 PROMPT_FACTURA = """
-Eres un asistente especializado en leer facturas, recibos y comprobantes en español latinoamericano.
-Extrae ÚNICAMENTE los siguientes datos y responde SOLO con JSON válido, sin explicaciones ni texto extra:
+Eres un experto en análisis de documentos.
 
-{
-  "proveedor": "nombre de la empresa o tienda emisora",
-  "total": "valor total a pagar con sus separadores originales (puntos, comas, etc.)",
-  "fecha": "fecha del documento en formato DD/MM/YYYY",
-  "banco": "nombre del banco si aparece (Bancolombia, Davivienda, Nequi, BBVA, etc.), sino null",
-  "tipo_documento": "factura | recibo | comprobante | otro"
-}
+Extrae los datos más importantes del documento.
 
-Si no encuentras algún dato pon null. No agregues NADA fuera del JSON.
+Prioriza:
+
+- Nombre de la empresa emisora.
+- NIT.
+- Número de factura.
+- Fecha.
+- Valor total o valor neto a pagar.
+- Banco.
+- Cuenta contrato.
+- Cliente.
+- Medidor.
+- Referencia.
+- Cualquier otro dato claramente identificado.
+
+Responde únicamente con JSON válido.
+
+Usa como claves los nombres naturales del documento.
+
+No inventes información.
+
+Si existen varios valores monetarios, prioriza:
+
+1. VALOR NETO A PAGAR.
+2. TOTAL A PAGAR.
+3. VALOR TOTAL.
+4. TOTAL.
+
+Devuelve exclusivamente JSON.
 """
 
 def _normalizar(datos: dict) -> dict:
-    """Garantiza que siempre existen todas las claves esperadas"""
-    return {
-        "proveedor": datos.get("proveedor") or "",
-        "total": str(datos.get("total") or ""),
-        "fecha": datos.get("fecha") or "", 
-        "banco": datos.get("banco") or "",
-        "tipo_documento": datos.get("tipo_documento") or ""
-    }
+    """Limpia el JSON devuelto por la IA sin imponer claves fijas"""
+    if not isinstance(datos, dict):
+        return{}
+    resultado = {}
+
+    for clave, valor in datos.items():
+
+        if valor is None:
+            continue
+
+        clave = str(clave).strip()
+
+        valor = str(valor).strip()
+
+        if clave and valor:
+            resultado[clave] = valor
+
+    return resultado
 
 def _imagen_a_base64(ruta: str) -> tuple[str, str]:
     """

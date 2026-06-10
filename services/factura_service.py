@@ -41,7 +41,8 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
             texto_crudo  = extraer_texto_ocr(ruta)
             texto_limpio = limpiar_texto(texto_crudo)
             datos_ocr    = extraer_texto_con_ia(texto_limpio)
-            print(f"  OCR+IA     → proveedor='{datos_ocr['proveedor']}' total='{datos_ocr['total']}'")
+            print("OCR+IA:")
+            print(datos_ocr)
 
             # --- CANAL 2: IA visión directo sobre la imagen ---
             datos_vision = {}
@@ -52,13 +53,20 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
                     ruta_img_tmp = tmp_img.name
                 datos_vision = extraer_con_ia_desde_imagen(ruta_img_tmp)
                 os.unlink(ruta_img_tmp)
-                print(f"  IA visión  → proveedor='{datos_vision['proveedor']}' total='{datos_vision['total']}'")
+                print("IA vision:")
+                print(datos_vision)
             except Exception as e:
                 print(f"  IA visión falló: {e}, usando solo OCR")
 
             # --- CONSENSO: campo por campo, prioriza el que tenga valor ---
             datos = _consenso(datos_ocr, datos_vision)
-            print(f"  Resultado  → proveedor='{datos['proveedor']}' total='{datos['total']}'")
+            
+            print("\n===== DATOS DEVUELTOS POR LA IA =====")
+            print(datos)
+            print("====================================\n")
+
+            print("Resultado final:")
+            print(datos)
 
         else:
             # PDF digital → solo texto (no necesita visión)
