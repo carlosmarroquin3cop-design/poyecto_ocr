@@ -4,6 +4,8 @@ from groq import Groq
 from config.settings import GROQ_API_KEY, GROQ_MODEL_TEXTO, GROQ_MODEL_VISION 
 
 from config.imports import *
+from io import BytesIO
+from PIL import Image
 
 
 client = Groq(api_key=GROQ_API_KEY)
@@ -40,19 +42,39 @@ def _imagen_a_base64(ruta: str) -> tuple[str, str]:
     Lee una imagen del disco y la convierte a base64.
     Retorna (base64_string, mime_type)
     """
+
     ext = os.path.splitext(ruta)[1].lower()
+
     mapa_mime = {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".png": "image/png",
         ".webp": "image/png",
         ".bmp": "image/bmp",
-        ".tiff": "image/tiff",    
-        }
+        ".tiff": "image/tiff",
+    }
+
     mime = mapa_mime.get(ext, "image/jpeg")
 
-    with open(ruta, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    imagen = Image.open(ruta)
+
+    # Reducir tamaño máximo manteniendo proporción
+    imagen.thumbnail((1500, 1500))
+
+    buffer = BytesIO()
+
+    # JPEG es mucho más ligero
+    imagen.convert("RGB").save(
+        buffer,
+        format="JPEG",
+        quality=80,
+        optimize=True
+    )
+
+    b64 = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
 
     return b64, mime
 

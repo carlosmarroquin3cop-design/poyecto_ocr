@@ -1,21 +1,22 @@
-import os, sys, tempfile
-from flask import Flask, request, jsonify, render_template
+import os
+import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from pdf2image import convert_from_path
 
-from database.db_manager import crear_tabla, guardar_factura, obtener_todas, obtener_por_id
+from config.settings import POPPLER_PATH
+
+from database.db_manager import guardar_factura
+
 from extractors.pdf_text import extraer_texto_pdf
-from extractors.pdf_ocr  import extraer_texto_ocr, es_pdf_escaneado
-from extractors.cleaner  import limpiar_texto, extraer_patrones
-from extractors.ai_extractor import extraer_texto_con_ia, extraer_con_ia_desde_imagen
+from extractors.pdf_ocr import extraer_texto_ocr, es_pdf_escaneado
+from extractors.cleaner import limpiar_texto, extraer_patrones
+from extractors.ai_extractor import (
+    extraer_texto_con_ia,
+    extraer_con_ia_desde_imagen,
+    es_imagen
+)
+
 from models.factura import Factura
-
-app = Flask(__name__)
-crear_tabla()
-
-EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
-EXTENSIONES_PDF    = {".pdf"}
-
 
 def _procesar_archivo(ruta: str, nombre: str) -> Factura:
     from extractors.ai_extractor import es_imagen
@@ -105,83 +106,3 @@ def _consenso(datos_ocr: dict, datos_vision: dict) -> dict:
         # Prefiere visión, cae a OCR si visión está vacío
         resultado[campo] = val_vision if val_vision else val_ocr
     return resultado
-
-
-# ── API REST ─────────────────────────────────────────────────────
-
-@app.route("/api/procesar", methods=["POST"])
-def api_procesar():
-    """
-    POST /api/procesar
-    Body: multipart/form-data  campo: 'archivo'  (PDF, JPG o PNG)
-    """
-    if "archivo" not in request.files:
-        return jsonify({"error": "Falta el campo 'archivo' en el form-data"}), 400
-
-    archivo = request.files["archivo"]
-    if not archivo.filename:
-        return jsonify({"error": "Nombre de archivo vacío"}), 400
-
-    sufijo = os.path.splitext(archivo.filename)[1]
-    with tempfile.NamedTemporaryFile(delete=False, suffix=sufijo) as tmp:
-        archivo.save(tmp.name)
-        ruta_tmp = tmp.name
-
-    try:
-        factura = _procesar_archivo(ruta_tmp, archivo.filename)
-        return jsonify({
-            "ok": True,
-            "datos": {
-                "nombre_archivo": factura.nombre_archivo,
-                "tipo":           factura.tipo_pdf,
-                "proveedor":      factura.proveedor,
-                "total":          factura.total,
-                "fecha":          factura.fecha,
-                "banco":          factura.banco
-            }
-        })
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 415
-    except Exception as e:
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
-    finally:
-        os.unlink(ruta_tmp)
-
-
-@app.route("/api/facturas", methods=["GET"])
-def api_listar():
-    """GET /api/facturas → devuelve todas las facturas guardadas"""
-    return jsonify([dict(f) for f in obtener_todas()])
-
-
-@app.route("/api/facturas/<int:factura_id>", methods=["GET"])
-def api_detalle(factura_id):
-    """GET /api/facturas/5 → detalle de una factura por ID"""
-    factura = obtener_por_id(factura_id)
-    if not factura:
-        return jsonify({"error": "No encontrada"}), 404
-    return jsonify(dict(factura))
-
-
-# ── UI WEB (se mantiene igual que antes) ─────────────────────────
-
-@app.route("/")
-def index():
-    return render_template("index.html", facturas=obtener_todas())
-
-
-@app.route("/factura/<int:factura_id>")
-def detalle_factura(factura_id):
-    factura = obtener_por_id(factura_id)
-    if not factura:
-        return "Factura no encontrada", 404
-    return render_template("index.html",
-                           facturas=obtener_todas(),
-                           factura_seleccionada=factura)
-
-
-if __name__ == "__main__":
-    print("API corriendo en:        http://127.0.0.1:5000")
-    print("Endpoint para subir:     POST /api/procesar")
-    print("Endpoint para listar:    GET  /api/facturas")
-    app.run(host="0.0.0.0", port=5000, debug=True)
