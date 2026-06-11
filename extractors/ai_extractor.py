@@ -15,55 +15,78 @@ EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 PROMPT_FACTURA = """
 Eres un experto en análisis de documentos.
 
-Extrae los datos más importantes del documento.
+Devuelve SIEMPRE estas claves:
 
-Prioriza:
+{
+    "proveedor":"",
+    "total":"",
+    "fecha":"",
+    "banco":""
+}
 
-- Nombre de la empresa emisora.
-- NIT.
-- Número de factura.
-- Fecha.
-- Valor total o valor neto a pagar.
-- Banco.
-- Cuenta contrato.
-- Cliente.
-- Medidor.
-- Referencia.
-- Cualquier otro dato claramente identificado.
+Además puedes añadir cualquier otro campo relevante.
 
-Responde únicamente con JSON válido.
+Reglas:
 
-Usa como claves los nombres naturales del documento.
+- proveedor = empresa emisora.
+- total = valor neto a pagar o total a pagar.
+- fecha = fecha principal del documento.
+- banco = banco identificado si existe.
 
 No inventes información.
 
-Si existen varios valores monetarios, prioriza:
+Devuelve exclusivamente JSON válido.
 
-1. VALOR NETO A PAGAR.
-2. TOTAL A PAGAR.
-3. VALOR TOTAL.
-4. TOTAL.
-
-Devuelve exclusivamente JSON.
 """
 
 def _normalizar(datos: dict) -> dict:
-    """Limpia el JSON devuelto por la IA sin imponer claves fijas"""
+    """
+    Limpia el JSON devuelto por la IA y traduce claves equivalentes
+    para mantener compatibilidad con el sistema.
+    """
+
     if not isinstance(datos, dict):
-        return{}
+        return {}
+
     resultado = {}
+
+    equivalencias = {
+
+        # proveedor
+        "empresa_emisora": "proveedor",
+        "empresa": "proveedor",
+        "nombre_empresa": "proveedor",
+        "emisor": "proveedor",
+
+        # total
+        "valor_neto_a_pagar": "total",
+        "valor_total": "total",
+        "total_a_pagar": "total",
+        "valor": "total",
+
+        # fecha
+        "fecha_factura": "fecha",
+        "fecha_emision": "fecha",
+
+        # banco
+        "entidad_bancaria": "banco"
+    }
 
     for clave, valor in datos.items():
 
         if valor is None:
             continue
 
-        clave = str(clave).strip()
-
+        clave = str(clave).strip().lower()
         valor = str(valor).strip()
 
-        if clave and valor:
-            resultado[clave] = valor
+        if not clave or not valor:
+            continue
+
+        # Traducción inteligente
+        clave_final = equivalencias.get(clave, clave)
+
+        resultado[clave_final] = valor
 
     return resultado
 
