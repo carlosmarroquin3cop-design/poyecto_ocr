@@ -13,29 +13,91 @@ client = Groq(api_key=GROQ_API_KEY)
 EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 
 PROMPT_FACTURA = """
-Eres un experto en análisis de documentos.
+Eres un experto en lectura de facturas, recibos y comprobantes en español.
 
-Devuelve SIEMPRE estas claves:
+Responde SIEMPRE con este JSON:
 
 {
-    "proveedor":"",
-    "total":"",
-    "fecha":"",
-    "banco":""
+"proveedor":"",
+"total":"",
+"fecha":"",
+"nit":"",
+"cliente":"",
+"nombre_cliente":"",
+"numero_factura":"",
+"banco":""
 }
-
-Además puedes añadir cualquier otro campo relevante.
 
 Reglas:
 
-- proveedor = empresa emisora.
-- total = valor neto a pagar o total a pagar.
-- fecha = fecha principal del documento.
-- banco = banco identificado si existe.
+* proveedor = nombre del establecimiento, empresa, banco o entidad emisora.
+
+* total = priorizar, en este orden:
+
+  1. VALOR NETO A PAGAR
+  2. TOTAL A PAGAR
+  3. VALOR TOTAL
+  4. TOTAL
+
+* fecha = fecha principal del documento.
+
+* nit = NIT de la empresa emisora.
+
+* cliente = valor asociado al campo CLIENTE. Puede ser una identificación, código, referencia o número.
+
+* nombre_cliente = valor asociado al campo NOMBRE. Puede ser "CONSUMIDOR FINAL", "JORGE ARIZA SALAMANCA" o cualquier otro nombre.
+
+Ejemplo:
+
+CLIENTE: 222222222222
+
+NOMBRE: CONSUMIDOR FINAL
+
+debe devolver:
+
+"cliente": "222222222222"
+
+"nombre_cliente": "CONSUMIDOR FINAL"
+
+* numero_factura = número completo de factura.
+
+IMPORTANTE:
+
+Si el número de factura aparece dividido en varias líneas, deben unirse.
+
+Ejemplo:
+
+Factura Electrónica de Venta No. 2199
+184411
+
+debe devolver:
+
+"numero_factura": "2199184411"
+
+Otro ejemplo:
+
+Factura Electrónica de Venta No. 2G69
+125005
+
+debe devolver:
+
+"numero_factura": "2G69125005"
+
+No confundas:
+
+* productos,
+* medicamentos,
+* vendedores,
+* cajeros,
+* nombres de empleados,
+
+con el proveedor.
 
 No inventes información.
 
-Devuelve exclusivamente JSON válido.
+Si un dato no aparece en el documento, devolver una cadena vacía.
+
+Responde exclusivamente con JSON válido.
 
 """
 

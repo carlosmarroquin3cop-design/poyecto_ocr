@@ -7,9 +7,21 @@ from config.settings import POPPLER_PATH
 
 from database.db_manager import guardar_factura
 
+from services.comparador_service import (
+    elegir_cliente,
+    elegir_nombre_cliente,
+    elegir_nit,
+    elegir_fecha,
+    elegir_total,
+    elegir_proveedor,
+    elegir_numero_factura
+)
+
+
 from extractors.pdf_text import extraer_texto_pdf
 from extractors.pdf_ocr import extraer_texto_ocr, es_pdf_escaneado
 from extractors.cleaner import limpiar_texto, extraer_patrones
+from extractors.regex_extractor import extraer_con_regex
 from extractors.ai_extractor import (
     extraer_texto_con_ia,
     extraer_con_ia_desde_imagen,
@@ -34,13 +46,30 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
 
     elif ext == ".pdf":
         if es_pdf_escaneado(ruta):
+
             tipo = "escaneado"
             print("PDF escaneado → usando OCR + IA visión en paralelo...")
 
             # --- CANAL 1: OCR con Tesseract ---
             texto_crudo  = extraer_texto_ocr(ruta)
             texto_limpio = limpiar_texto(texto_crudo)
+
+
+            print("\n========== TEXTO LIMPIO ==========")
+            print(texto_limpio)
+            print("=================================\n")
+
+            #PRIMERA CAPA: REGEX
+            datos_regex = extraer_con_regex(texto_limpio)
+
+            print("\n========== REGEX ==========")
+            print(datos_regex)
+            print("===========================\n")
+
+            #SEGUNDA CAPA: IA
+            
             datos_ocr    = extraer_texto_con_ia(texto_limpio)
+
             print("OCR+IA:")
             print(datos_ocr)
 
@@ -61,19 +90,26 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
             # --- CONSENSO: campo por campo, prioriza el que tenga valor ---
             datos = _consenso(datos_ocr, datos_vision)
             
-            print("\n===== DATOS DEVUELTOS POR LA IA =====")
-            print(datos)
-            print("====================================\n")
+            print("\n========== OCR ==========")
+            print(datos_ocr)
 
-            print("Resultado final:")
+            print("\n========== VISION ==========")
+            print(datos_vision)
+
+            print("\n========== RESULTADO FINAL ==========")
             print(datos)
+
+            print("=====================================\n")
 
         else:
             # PDF digital → solo texto (no necesita visión)
             tipo         = "digital"
-            texto_crudo  = extraer_texto_pdf(ruta)
+            texto_crudo  = extraer_texto_ocr(ruta)
             texto_limpio = limpiar_texto(texto_crudo)
-            datos        = extraer_texto_con_ia(texto_limpio)
+
+            print("\n========== PDF DIGITAL ==========")
+            print(datos)
+            print("================================\n")
 
         # Respaldo final con regex si ambos canales fallaron
         if not any(datos.values()):
@@ -99,18 +135,36 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
     return factura
 
 
-def _consenso(datos_ocr: dict, datos_vision: dict) -> dict:
-    """
-    Combina los resultados de OCR+IA y de IA visión campo por campo.
-    Regla: si visión tiene el dato, lo prefiere (más preciso).
-           si visión no tiene el dato pero OCR sí, usa OCR.
-           si ninguno tiene el dato, queda vacío.
-    """
-    campos = ["proveedor", "total", "fecha", "banco", "tipo_documento"]
-    resultado = {}
-    for campo in campos:
-        val_vision = datos_vision.get(campo, "")
-        val_ocr    = datos_ocr.get(campo, "")
-        # Prefiere visión, cae a OCR si visión está vacío
-        resultado[campo] = val_vision if val_vision else val_ocr
-    return resultado
+# def _consenso(datos_ocr: dict, datos_vision: dict):
+
+#     resultado = {}
+
+#     preferir_ocr = [
+        
+#         "cliente",
+#         "nombre_cliente"
+#     ]
+
+#     preferir_vision = [
+#         "nit",
+#         "fecha",
+#         "total",
+#         "banco"
+#     ]
+
+#     todos_los_campos = set(datos_ocr.keys()) | set(datos_vision.keys())
+
+#     for campo in todos_los_campos:
+
+#         val_ocr = datos_ocr.get(campo, "")
+#         val_vision = datos_vision.get(campo, "")
+
+#         if campo in preferir_ocr:
+
+#             resultado[campo] = val_ocr if val_ocr else val_vision
+
+#         else:
+
+#             resultado[campo] = val_vision if val_vision else val_ocr
+
+#     return resultado

@@ -1,4 +1,5 @@
 from config.imports import *
+from PIL import ImageEnhance
 from config.settings import TESSERACT_PATH, POPPLER_PATH
 
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
@@ -17,7 +18,7 @@ def extraer_texto_ocr(ruta_pdf):
         # dpi=300 da buena resolucion para OCR, aunque puede ser mas lento.
         paginas = convert_from_path(
             ruta_pdf,
-            dpi=300,
+            dpi=400,
             poppler_path=POPPLER_PATH
         )
 
@@ -29,7 +30,17 @@ def extraer_texto_ocr(ruta_pdf):
             # -l spa+eng usa espanol e ingles para facturas mixtas.
             config_ocr = "--oem 3 --psm 6 -l spa+eng"
 
-            texto = pytesseract.image_to_string(imagen, config=config_ocr)
+            # Convertir a escala de grises
+            imagen = imagen.convert("L")
+
+            # Aumentar contraste
+            imagen = ImageEnhance.Contrast(imagen).enhance(2)
+
+            # OCR
+            texto = pytesseract.image_to_string(
+                imagen,
+                config=config_ocr
+            )
 
             if texto.strip():
                 texto_completo += f"\n--- Pagina {numero_pagina} (OCR) ---\n"
