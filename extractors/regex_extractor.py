@@ -25,36 +25,119 @@ def extraer_con_regex(texto: str) -> dict:
         datos["nit"] = patron.group(1)
 
 
-    #-------------------CLIENTE------------
+    #-----------------NUMERO FACTURA-----------------
+
+    patrones_factura = [
+
+        r'FACTURA.*?NO\.?\s*([A-Z0-9]{3,})\s*\n\s*([A-Z0-9]{3,})',
+
+        r'FACTURA.*?NO\.?\s*([A-Z0-9]{3,})\s+([A-Z0-9]{3,})'
+
+    ]
+
+    for patron in patrones_factura:
+
+        encontrado = re.search(
+
+            patron,
+
+            texto,
+
+            re.IGNORECASE
+
+        )
+
+        if encontrado:
+
+            parte1 = encontrado.group(1).upper()
+            parte2 = encontrado.group(2).upper()
+
+            datos["numero_factura"] = parte1 + parte2
+
+            break
+ 
+        
+
+
+
+    #-------------------PROVEEDOR----------------
 
     patron = re.search(
-        r'CLIENTE[:;\s]*([A-Z0-9]+)',
+        r'(REBAJA PLUS.*)',
+
         texto,
+
         re.IGNORECASE
     )
 
     if patron:
-        datos["cliente"] = patron.group(1)
+
+        datos["proveedor"] = patron.group(1).strip()
+
+    #-------------------CLIENTE------------
+
+    patrones_cliente = [
+
+        r'CLIENTE[:;\s]*([A-Z0-9]{6,})',
+
+        r'CLIENTE[.;:\s]*([A-Z0-9]{6,})',
+
+        r'CLIENTE.*?([0-9]{6,})',
+
+        r'CLIENTE.*?([A-Z0-9]{6,})'
+    ]
+
+    for patron in patrones_cliente:
+
+        encontrado = re.search(
+            patron,
+            texto,
+            re.IGNORECASE | re.DOTALL
+
+        )
+
+        if encontrado:
+
+            datos["cliente"] = encontrado.group(1)
+            break
+
 
 
     #---------------NOMBRE CLIENTE---------
 
-    coincidencias = re.findall(
+    patrones_nombre = [
+
         r'NOMBRE[:;\s]*([A-ZÁÉÍÓÚÑ ]+)',
-        texto,
-        re.IGNORECASE
-    )
 
-    for nombre in coincidencias:
+        r'NOMBRE[.;:\s]*([A-ZÁÉÍÓÚÑ ]+)',
 
-        nombre = nombre.strip()
+        r'NOMBRE.*?([A-ZÁÉÍÓÚÑ ]{5,})'
+        
+    ]
 
-        if (
-            "SW" not in nombre.upper()
-            and len(nombre) > 5
-        ):
+    for patron in patrones_nombre:
 
-            datos["nombre_cliente"] = nombre
+        coincidencias = re.findall(
+
+            patron,
+            texto,
+            re.IGNORECASE | re.DOTALL
+
+        )
+
+        for nombre in coincidencias:
+
+            nombre = nombre.strip()
+
+            if (
+                "SW" not in nombre.upper()
+                and "FINANCIERO" not in nombre.upper()
+                and "CARVAJAL" not in nombre.upper()
+                and len(nombre) > 5
+            ):
+
+                datos["nombre_cliente"] = nombre
+                break
 
 
     #-----------FECHA---------------

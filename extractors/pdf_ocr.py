@@ -28,13 +28,24 @@ def extraer_texto_ocr(ruta_pdf):
             # --oem 3 usa el mejor motor disponible.
             # --psm 6 asume un bloque uniforme de texto.
             # -l spa+eng usa espanol e ingles para facturas mixtas.
-            config_ocr = "--oem 3 --psm 6 -l spa+eng"
+            config_ocr = (
+                "--oem 3 "
+                "--psm 6 "
+                "-l spa+eng "
+                "-c preserve_interword_spaces=1"
+            )
 
             # Convertir a escala de grises
             imagen = imagen.convert("L")
 
             # Aumentar contraste
-            imagen = ImageEnhance.Contrast(imagen).enhance(2)
+            imagen = ImageEnhance.Contrast(imagen).enhance(2.5)
+
+            #MEjorar nitidez
+            imagen = imagen.point(
+                lambda x: 255 if x > 170 else 0,
+                mode='1'
+            )
 
             # OCR
             texto = pytesseract.image_to_string(

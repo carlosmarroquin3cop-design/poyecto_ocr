@@ -135,36 +135,48 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
     return factura
 
 
-# def _consenso(datos_ocr: dict, datos_vision: dict):
+def _consenso(datos_ocr: dict, datos_vision: dict):
 
-#     resultado = {}
+    resultado = {}
 
-#     preferir_ocr = [
-        
-#         "cliente",
-#         "nombre_cliente"
-#     ]
+    resultado["proveedor"] = elegir_proveedor(
+        datos_ocr.get("proveedor", ""),
+        datos_vision.get("proveedor", "")
+    )
 
-#     preferir_vision = [
-#         "nit",
-#         "fecha",
-#         "total",
-#         "banco"
-#     ]
+    resultado["numero_factura"] = elegir_numero_factura(
+        datos_ocr.get("numero_factura", ""),
+        datos_vision.get("numero_factura", "")
+    )
 
-#     todos_los_campos = set(datos_ocr.keys()) | set(datos_vision.keys())
+    resultado["cliente"] = elegir_cliente(
+        datos_ocr.get("cliente", ""),
+        datos_vision.get("cliente", "")
+    )
 
-#     for campo in todos_los_campos:
+    resultado["nombre_cliente"] = elegir_nombre_cliente(
+        datos_ocr.get("nombre_cliente", ""),
+        datos_vision.get("nombre_cliente", "")
+    )
 
-#         val_ocr = datos_ocr.get(campo, "")
-#         val_vision = datos_vision.get(campo, "")
+    resultado["nit"] = elegir_nit(
+        datos_ocr.get("nit", ""),
+        datos_vision.get("nit", "")
+    )
 
-#         if campo in preferir_ocr:
+    resultado["fecha"] = elegir_fecha(
+        datos_ocr.get("fecha", ""),
+        datos_vision.get("fecha", "")
+    )
 
-#             resultado[campo] = val_ocr if val_ocr else val_vision
+    resultado["total"] = elegir_total(
+        datos_ocr.get("total", ""),
+        datos_vision.get("total", "")
+    )
 
-#         else:
+    resultado["banco"] = datos_vision.get(
+        "banco",
+        datos_ocr.get("banco", "")
+    )
 
-#             resultado[campo] = val_vision if val_vision else val_ocr
-
-#     return resultado
+    return resultado

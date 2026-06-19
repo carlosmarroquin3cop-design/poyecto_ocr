@@ -48,12 +48,20 @@ def elegir_numero_factura(ocr, vision):
     if not ocr:
         return vision
 
-    # Si visión contiene letras sospechosas y OCR es numérico,
-    # preferimos OCR
-    if re.search(r'[A-Za-z]', vision):
+    # Si ambos son iguales
+    if ocr == vision:
+        return ocr
 
-        if ocr.isdigit():
+    # Si uno contiene al otro, usar el más largo
+    if ocr in vision:
+        return vision
 
-            return ocr
+    if vision in ocr:
+        return ocr
 
-    return vision
+    # Si tienen longitudes parecidas, confiar en visión
+    if abs(len(vision) - len(ocr)) <= 2:
+        return vision
+
+    # Si no, conservar OCR
+    return ocr
