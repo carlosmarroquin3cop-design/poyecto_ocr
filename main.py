@@ -3,6 +3,7 @@ from config.settings import PDF_FOLDER
 from database.db_manager import crear_tabla, guardar_factura
 from extractors.pdf_text import extraer_texto_pdf
 from extractors.pdf_ocr import extraer_texto_ocr, es_pdf_escaneado
+from extractors.image_ocr import extraer_texto_imagen
 from extractors.cleaner import limpiar_texto, extraer_patrones
 from models.factura import Factura
 from extractors.ai_extractor import extraer_texto_con_ia
@@ -11,11 +12,20 @@ def procesar_pdf(ruta_pdf):
     nombre = os.path.basename(ruta_pdf)
     print(f"\nProcesando: {nombre}")
 
-    if es_pdf_escaneado(ruta_pdf):
+    if ruta_pdf.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+
+        print("Tipo: imagen → OCR + IA")
+        tipo = "imagen"
+        texto_crudo = extraer_texto_imagen(ruta_pdf)
+
+    elif es_pdf_escaneado(ruta_pdf):
+
         print("Tipo: escaneado → OCR + IA")
         tipo = "escaneado"
         texto_crudo = extraer_texto_ocr(ruta_pdf)
+
     else:
+
         print("Tipo: digital → extracción directa + IA")
         tipo = "digital"
         texto_crudo = extraer_texto_pdf(ruta_pdf)
@@ -63,7 +73,9 @@ def main():
 
     archivos_pdf = [
         f for f in os.listdir(PDF_FOLDER)
-        if f.lower().endswith(".pdf")
+        if f.lower().endswith(
+            (".pdf", ".jpg", ".jpeg", ".png", ".webp")
+        )
     ]
 
     if not archivos_pdf:

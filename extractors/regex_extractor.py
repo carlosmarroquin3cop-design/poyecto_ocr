@@ -16,13 +16,16 @@ def extraer_con_regex(texto: str) -> dict:
     #-------------NIT---------------
 
     patron = re.search(
-        r'NIT[:\s]*([\d.\,\-]+)',
+        r'NIT[:\s]*([\d\.\,\-\s]+)',
         texto,
         re.IGNORECASE
     )
 
     if patron:
-        datos["nit"] = patron.group(1)
+        datos["nit"] = ( 
+            patron.group(1)
+            .replace(" ", "")
+        )
 
 
     #-----------------NUMERO FACTURA-----------------
@@ -78,13 +81,10 @@ def extraer_con_regex(texto: str) -> dict:
 
     patrones_cliente = [
 
-        r'CLIENTE[:;\s]*([A-Z0-9]{6,})',
+        r'CLIENTE[:;\s]*([0-9]{6,})',
 
-        r'CLIENTE[.;:\s]*([A-Z0-9]{6,})',
+        r'CLIENTE[.;:\s]*([0-9]{6,})'
 
-        r'CLIENTE.*?([0-9]{6,})',
-
-        r'CLIENTE.*?([A-Z0-9]{6,})'
     ]
 
     for patron in patrones_cliente:

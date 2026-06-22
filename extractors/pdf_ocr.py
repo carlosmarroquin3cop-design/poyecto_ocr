@@ -18,7 +18,7 @@ def extraer_texto_ocr(ruta_pdf):
         # dpi=300 da buena resolucion para OCR, aunque puede ser mas lento.
         paginas = convert_from_path(
             ruta_pdf,
-            dpi=400,
+            dpi=500,
             poppler_path=POPPLER_PATH
         )
 
@@ -32,19 +32,30 @@ def extraer_texto_ocr(ruta_pdf):
                 "--oem 3 "
                 "--psm 6 "
                 "-l spa+eng "
-                "-c preserve_interword_spaces=1"
+                "-c preserve_interword_spaces=1 "
+                "-c textord_heavy_nr=1 "
+                "-c textord_min_linesize=2.5"
             )
 
             # Convertir a escala de grises
             imagen = imagen.convert("L")
 
-            # Aumentar contraste
-            imagen = ImageEnhance.Contrast(imagen).enhance(2.5)
+            # Contraste
+            imagen = ImageEnhance.Contrast(imagen).enhance(4)
 
-            #MEjorar nitidez
+            # Nitidez
+            imagen = ImageEnhance.Sharpness(imagen).enhance(3)
+
+            # Escalar imagen
+            ancho, alto = imagen.size
+            imagen = imagen.resize(
+            (ancho * 2, alto * 2)
+            )
+
+            # Binarización
             imagen = imagen.point(
-                lambda x: 255 if x > 170 else 0,
-                mode='1'
+            lambda x: 255 if x > 160 else 0,
+            mode="1"
             )
 
             # OCR
@@ -52,6 +63,14 @@ def extraer_texto_ocr(ruta_pdf):
                 imagen,
                 config=config_ocr
             )
+
+            texto2 = pytesseract.image_to_string(
+                imagen,
+                config=config_ocr.replace("--psm 6", "--psm 11")
+            )
+
+            if len(texto2) > len(texto):
+                texto = texto2
 
             if texto.strip():
                 texto_completo += f"\n--- Pagina {numero_pagina} (OCR) ---\n"

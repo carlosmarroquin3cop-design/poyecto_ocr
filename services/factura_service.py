@@ -5,6 +5,8 @@ from pdf2image import convert_from_path
 
 from config.settings import POPPLER_PATH
 
+from extractors.image_ocr import extraer_texto_imagen
+
 from database.db_manager import guardar_factura
 
 from services.comparador_service import (
@@ -39,10 +41,52 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
     ext = os.path.splitext(nombre)[1].lower()
 
     if es_imagen(nombre):
-        # Imagen directa → solo IA visión (no hay texto que extraer)
-        tipo         = "imagen"
-        texto_limpio = "[Imagen procesada con IA visión]"
-        datos        = extraer_con_ia_desde_imagen(ruta)
+
+        tipo = "imagen"
+
+        print("Imagen detectada → usando OCR + IA visión en paralelo...")
+
+        # CANAL 1: OCR
+        texto_crudo = extraer_texto_imagen(ruta)
+        texto_limpio = limpiar_texto(texto_crudo)
+        texto_limpio = texto_limpio.upper()
+
+        print("\n========== TEXTO LIMPIO ==========")
+        print(texto_limpio)
+        print("=================================\n")
+
+        # REGEX
+        datos_regex = extraer_con_regex(texto_limpio)
+
+        print("\n========== REGEX ==========")
+        print(datos_regex)
+        print("===========================\n")
+
+        # IA TEXTO
+        datos_ocr = extraer_texto_con_ia(texto_limpio)
+
+        print("OCR+IA:")
+        print(datos_ocr)
+
+        # IA VISIÓN
+        datos_vision = extraer_con_ia_desde_imagen(ruta)
+
+        print("IA vision:")
+        print(datos_vision)
+
+        # CONSENSO
+        datos = _consenso(datos_ocr, datos_vision)
+
+        print("\n========== OCR ==========")
+        print(datos_ocr)
+
+        print("\n========== VISION ==========")
+        print(datos_vision)
+
+        print("\n========== RESULTADO FINAL ==========")
+        print(datos)
+
+        print("=====================================\n")
 
     elif ext == ".pdf":
         if es_pdf_escaneado(ruta):
@@ -53,7 +97,7 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
             # --- CANAL 1: OCR con Tesseract ---
             texto_crudo  = extraer_texto_ocr(ruta)
             texto_limpio = limpiar_texto(texto_crudo)
-
+            texto_limpio = texto_limpio.upper()
 
             print("\n========== TEXTO LIMPIO ==========")
             print(texto_limpio)
@@ -106,7 +150,7 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
             tipo         = "digital"
             texto_crudo  = extraer_texto_ocr(ruta)
             texto_limpio = limpiar_texto(texto_crudo)
-
+            
             print("\n========== PDF DIGITAL ==========")
             print(datos)
             print("================================\n")
