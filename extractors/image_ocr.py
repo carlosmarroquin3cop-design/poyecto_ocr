@@ -1,67 +1,63 @@
 from PIL import Image
-from PIL import ImageOps
-from PIL import ImageEnhance
+import pytesseract
 import tempfile
 import os
 
-from extractors.pdf_ocr import extraer_texto_ocr
+from extractors.image_preprocessor import procesar_imagen_fotografia
+from config.settings import TESSERACT_PATH
+
+pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
 
 def extraer_texto_imagen(ruta_imagen):
+    """
+    Extrae texto de imagen fotográfica.
+    
+    Flujo:
+    1. Preprocesar imagen (oscurecer/contrastar)
+    2. Pasar DIRECTAMENTE a Tesseract (sin PDF)
+    3. OCR
+    """
 
-    print("Procesando imagen con OCR mediante PDF temporal...")
+    print("=" * 60)
+    print("EXTRAYENDO TEXTO DE IMAGEN CON PREPROCESAMIENTO")
+    print("=" * 60)
 
     try:
-
-        imagen = Image.open(ruta_imagen)
-
-        MAX_SIZE = 1200
-
-        ancho, alto = imagen.size
-
-        if max(ancho, alto) > MAX_SIZE:
-
-            proporcion = MAX_SIZE / max(ancho, alto)
-
-            imagen = imagen.resize(
-                (
-                    int(ancho * proporcion),
-                    int(alto * proporcion)
-                )
-            )
-
-        imagen = imagen.convert("L")
-
-        imagen = imagen.convert("L")
-
-        imagen = ImageOps.autocontrast(imagen)
-
-        imagen = ImageEnhance.Contrast(imagen).enhance(1.15)
-
-        imagen = ImageEnhance.Sharpness(imagen).enhance(1.05)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".pdf",
-            delete=False
-        ) as tmp:
-
-            ruta_pdf_temporal = tmp.name
-
-        imagen.convert("RGB").save(
-            ruta_pdf_temporal,
-            "PDF"
+        # PASO 1: Preprocesar la imagen
+        ruta_procesada = procesar_imagen_fotografia(ruta_imagen)
+        
+        if ruta_procesada is None:
+            print("[image_ocr] ❌ Preprocesamiento falló")
+            return ""
+        
+        # PASO 2: Abrir imagen procesada
+        img_procesada = Image.open(ruta_procesada)
+        print(f"[image_ocr] Imagen procesada: {img_procesada.size}")
+        
+        # PASO 3: OCR DIRECTO sin pasar por PDF
+        print("[image_ocr] Ejecutando Tesseract OCR directamente...")
+        
+        config_ocr = (
+            "--oem 3 "
+            "--psm 6 "
+            "-l spa+eng "
+            "-c preserve_interword_spaces=1"
         )
-
-        texto = extraer_texto_ocr(
-            ruta_pdf_temporal
-        )
-
-        os.remove(ruta_pdf_temporal)
-
+        
+        texto = pytesseract.image_to_string(img_procesada, config=config_ocr)
+        
+        # PASO 4: Limpiar archivo temporal
+        try:
+            os.remove(ruta_procesada)
+        except:
+            pass
+        
+        print(f"[image_ocr] ✅ OCR completado ({len(texto)} caracteres)")
         return texto
 
     except Exception as e:
-
-        print(f"Error en OCR de imagen: {e}")
-
+        print(f"[image_ocr] ❌ Error en OCR de imagen: {e}")
+        import traceback
+        traceback.print_exc()
         return ""
