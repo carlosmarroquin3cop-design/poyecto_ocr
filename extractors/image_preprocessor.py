@@ -6,6 +6,8 @@ Sin CLAHE. Solo iluminación + filtros inteligentes.
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance, ImageStat
 import tempfile
 import os
+import cv2
+import numpy as np
 
 
 def _detectar_y_rotar_documento(img: Image.Image) -> Image.Image:
@@ -33,6 +35,48 @@ def procesar_imagen_fotografia(ruta_imagen: str) -> str:
     
     try:
         img = Image.open(ruta_imagen)
+
+        # =====================================
+        # CORRECCION DE SOMBRAS
+        # =====================================
+
+        img_cv = cv2.imread(ruta_imagen)
+
+        gray_shadow = cv2.cvtColor(
+            img_cv,
+            cv2.COLOR_BGR2GRAY
+        )
+
+        
+
+        background = cv2.GaussianBlur(
+            gray_shadow,
+            (151, 151),
+            0
+        )
+
+        corrected = cv2.divide(
+            gray_shadow,
+            background,
+            scale=220
+        )
+
+        corrected = cv2.convertScaleAbs(
+            corrected,
+            alpha=1.15,
+            beta=-5
+        )
+
+        corrected = cv2.fastNlMeansDenoising(
+            corrected,
+            None,
+            10,
+            7,
+            21
+        )
+
+        img = Image.fromarray(corrected)
+
         ancho_orig, alto_orig = img.size
         print(f"[PREPROCESSOR] Tamaño original: {ancho_orig}x{alto_orig}")
         
@@ -67,24 +111,28 @@ def procesar_imagen_fotografia(ruta_imagen: str) -> str:
             factor_brillo = 1.3 # Medianamente oscura
             print("[PREPROCESSOR] Imagen mediana → +30% brillo")
         else:
-            factor_brillo = 1.1  # Clara
+            factor_brillo = 1.0  # Clara
             print("[PREPROCESSOR] Imagen clara → +10% brillo")
         
         enhancer_bright = ImageEnhance.Brightness(img)
         img = enhancer_bright.enhance(factor_brillo)
         
         # PASO 5: Gaussian Blur suave (reduce ruido)
-        img = img.filter(ImageFilter.GaussianBlur(radius=0.8))
+        img = img.filter(ImageFilter.GaussianBlur(radius=0.3))
         
         # PASO 6: Autocontrast para expandir rango
-        img = ImageOps.autocontrast(img, cutoff=2)
+        # PASO 6: Autocontrast para expandir rango
+        img = ImageOps.autocontrast(img, cutoff=0)
+
+        # Oscurecer letras sin oscurecer el papel
         
+
         # PASO 7: Aumentar contraste moderado
         enhancer_contrast = ImageEnhance.Contrast(img)
-        img = enhancer_contrast.enhance(1.5)
-        
+        img = enhancer_contrast.enhance(1.35)
+                
         # PASO 8: Nitidez
-        img = img.filter(ImageFilter.SHARPEN)
+        img = ImageEnhance.Sharpness(img).enhance(2.0)
         
         # PASO 9: Guardar
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
