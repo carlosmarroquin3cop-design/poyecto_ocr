@@ -78,7 +78,7 @@ def extraer_texto_imagen(ruta_imagen):
         
         config_ocr = (
             "--oem 3 "
-            "--psm 6 "
+            "--psm 4 "
             "-l spa+eng "
             "-c preserve_interword_spaces=1 "
             "-c textord_heavy_nr=1"

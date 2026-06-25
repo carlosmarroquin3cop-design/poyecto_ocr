@@ -120,19 +120,71 @@ def procesar_imagen_fotografia(ruta_imagen: str) -> str:
         # PASO 5: Gaussian Blur suave (reduce ruido)
         img = img.filter(ImageFilter.GaussianBlur(radius=0.3))
         
-        # PASO 6: Autocontrast para expandir rango
-        # PASO 6: Autocontrast para expandir rango
+        
+        # PASO 6: Expandir rango dinámico
         img = ImageOps.autocontrast(img, cutoff=0)
 
-        # Oscurecer letras sin oscurecer el papel
-        
+        # =====================================================
+        # NUEVO BLOQUE OCR
+        # Oscurece únicamente las letras sin afectar el papel.
+        # =====================================================
 
-        # PASO 7: Aumentar contraste moderado
-        enhancer_contrast = ImageEnhance.Contrast(img)
-        img = enhancer_contrast.enhance(1.35)
-                
-        # PASO 8: Nitidez
-        img = ImageEnhance.Sharpness(img).enhance(2.0)
+        img_np = np.array(img)
+
+        # BlackHat resalta solamente texto oscuro
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT,
+            (15, 15)
+        )
+
+        blackhat = cv2.morphologyEx(
+            img_np,
+            cv2.MORPH_BLACKHAT,
+            kernel
+        )
+
+        # Amplificar solamente el texto encontrado
+        blackhat = cv2.normalize(
+            blackhat,
+            None,
+            0,
+            255,
+            cv2.NORM_MINMAX
+        )
+
+        # Restar el texto detectado al fondo
+        resultado = cv2.subtract(
+            img_np,
+            blackhat
+        )
+
+        # Oscurecer únicamente el texto encontrado
+
+        resultado = cv2.addWeighted(
+            img_np,
+            1.0,
+            blackhat,
+            -1.6,
+            0
+        )
+
+        resultado = cv2.normalize(
+            resultado,
+            None,
+            0,
+            255,
+            cv2.NORM_MINMAX
+        )
+
+        resultado = cv2.fastNlMeansDenoising(
+            resultado,
+            None,
+            6,
+            7,
+            21
+        )
+
+        img = Image.fromarray(resultado)
         
         # PASO 9: Guardar
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
