@@ -2,7 +2,7 @@ from extractors.image_preprocessor import procesar_imagen_fotografia
 from PIL import Image
 
 # PRUEBA 1: Ver la imagen preprocesada directamente
-ruta_tu_foto = r"C:\Users\cmarroquin\Documents\web para api\static\uploads\17823161168869212590074259821216.jpg"  # Reemplaza con tu archivo
+ruta_tu_foto = r"C:\Users\cmarroquin\Documents\web para api\static\uploads\17824166759534734646865483412156.jpg"  # Reemplaza con tu archivo
 
 imagen_procesada_path = procesar_imagen_fotografia(ruta_tu_foto)
 

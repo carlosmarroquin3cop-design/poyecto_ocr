@@ -22,44 +22,60 @@ def extraer_con_regex(texto: str) -> dict:
     )
 
     if patron:
-        datos["nit"] = ( 
-            patron.group(1)
-            .replace(" ", "")
-        )
+        datos["nit"] = (
+        patron.group(1)
+        .replace(" ", "")
+        .replace("\n", "")
+        .replace("\r", "")
+        .strip()
+    )
 
 
     #-----------------NUMERO FACTURA-----------------
 
     patrones_factura = [
 
-        r'FACTURA.*?NO\.?\s*([A-Z0-9]{3,})\s*\n\s*([A-Z0-9]{3,})',
+        # Caso:
+        # FACTURA ... NO. 2669
+        # 126313
+        r'FACTURA.*?NO[\.,:]?\s*([A-Z0-9]{3,})\s*\n+\s*([A-Z0-9]{3,})',
 
-        r'FACTURA.*?NO\.?\s*([A-Z0-9]{3,})\s+([A-Z0-9]{3,})'
+        # Caso:
+        # FACTURA ... NO. 2669 126313
+        r'FACTURA.*?NO[\.,:]?\s*([A-Z0-9]{3,})\s+([A-Z0-9]{3,})',
 
+        # Caso:
+        # FACTURA ... NO.2669126313
+        r'FACTURA.*?NO[\.,:]?\s*([A-Z0-9]{8,})'
     ]
 
     for patron in patrones_factura:
 
         encontrado = re.search(
-
             patron,
-
             texto,
-
-            re.IGNORECASE
-
+            re.IGNORECASE | re.DOTALL
         )
 
-        if encontrado:
+        if not encontrado:
+            continue
 
-            parte1 = encontrado.group(1).upper()
-            parte2 = encontrado.group(2).upper()
+        if len(encontrado.groups()) == 2:
+
+            parte1 = encontrado.group(1).replace(" ", "").upper()
+            parte2 = encontrado.group(2).replace(" ", "").upper()
 
             datos["numero_factura"] = parte1 + parte2
 
-            break
- 
-        
+        else:
+
+            datos["numero_factura"] = (
+                encontrado.group(1)
+                .replace(" ", "")
+                .upper()
+            )
+
+        break
 
 
 
@@ -152,27 +168,37 @@ def extraer_con_regex(texto: str) -> dict:
 
     #---------TOTAL-----------------
 
-    PATRONES_TOTAL = [
-
-        r'VALOR NETO A PAGAR.*?([\d\.,]+)',
-        r'TOTAL A PAGAR.*?([\d\.,]+)',
-        r'VALOR TOTAL.*?([\d\.,]+)',
-        r'VALOR VENTA.*?([\d\.,]+)',
-        r'TOTAL.*?([\d\.,]+)',
-        r'VALOR.*?([\d\.,]+)'
+    prioridades = [
+        "VALOR NETO A PAGAR",
+        "TOTAL A PAGAR",
+        "VALOR TOTAL",
+        "VALOR VENTA",
+        "SUBTOTAL"
     ]
 
-    for patron in PATRONES_TOTAL:
+    lineas = texto.splitlines()
 
-        encontrado = re.search(
-            patron,
-            texto,
-            re.IGNORECASE
-        )
+    for prioridad in prioridades:
 
-        if encontrado:
+        for i, linea in enumerate(lineas):
 
-            datos["total"] = encontrado.group(1)
+            if prioridad not in linea.upper():
+                continue
+
+            # Revisar la línea actual y las dos siguientes
+            bloque = "\n".join(lineas[i:i+3])
+
+            # Buscar únicamente valores precedidos por $
+            encontrados = re.findall(
+                r'\$\s*([\d][\d\.,]{2,})',
+                bloque
+            )
+
+            if encontrados:
+                datos["total"] = encontrados[-1]
+                break
+
+        if datos["total"]:
             break
 
     return datos
