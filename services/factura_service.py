@@ -63,13 +63,14 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
         print("===========================\n")
 
         # IA TEXTO
-        datos_ocr = extraer_texto_con_ia(texto_limpio)
+        # JSON generado por OCR + Regex
+        datos_ocr = datos_regex
 
-        print("OCR+IA:")
+        print("OCR:")
         print(datos_ocr)
 
         # IA VISIÓN
-        datos_vision = extraer_con_ia_desde_imagen(ruta)
+        datos_vision = extraer_con_ia_desde_imagen(ruta, datos_regex)
 
         print("IA vision:")
         print(datos_vision)
@@ -110,11 +111,11 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
             print(datos_regex)
             print("===========================\n")
 
-            #SEGUNDA CAPA: IA
-            
-            datos_ocr    = extraer_texto_con_ia(texto_limpio)
+            # JSON generado por OCR + Regex
 
-            print("OCR+IA:")
+            datos_ocr = datos_regex
+
+            print("OCR:")
             print(datos_ocr)
 
             # --- CANAL 2: IA visión directo sobre la imagen ---
@@ -124,7 +125,7 @@ def _procesar_archivo(ruta: str, nombre: str) -> Factura:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img:
                     paginas[0].save(tmp_img.name, "PNG")
                     ruta_img_tmp = tmp_img.name
-                datos_vision = extraer_con_ia_desde_imagen(ruta_img_tmp)
+                datos_vision = extraer_con_ia_desde_imagen(ruta_img_tmp, datos_regex)
                 os.unlink(ruta_img_tmp)
                 print("IA vision:")
                 print(datos_vision)

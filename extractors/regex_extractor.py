@@ -81,17 +81,147 @@ def extraer_con_regex(texto: str) -> dict:
 
     #-------------------PROVEEDOR----------------
 
-    patron = re.search(
-        r'(REBAJA PLUS.*)',
+    # 1. Buscar establecimientos muy comunes al inicio del documento
 
-        texto,
+    patrones_proveedor = [
 
-        re.IGNORECASE
-    )
+        r'REBAJA\s+PLUS[^\n]*',
 
-    if patron:
+        r'LA\s+REBAJA[^\n]*',
 
-        datos["proveedor"] = patron.group(1).strip()
+        r'CRUZ\s+VERDE[^\n]*',
+
+        r'FARMATODO[^\n]*',
+
+        r'EXITO[^\n]*',
+
+        r'CARULLA[^\n]*',
+
+        r'OLIMPICA[^\n]*',
+
+        r'D1[^\n]*',
+
+        r'ARA[^\n]*',
+
+        r'JUMBO[^\n]*',
+
+        r'ALKOSTO[^\n]*'
+
+    ]
+
+    for patron in patrones_proveedor:
+
+        encontrado = re.search(
+            patron,
+            texto,
+            re.IGNORECASE
+        )
+
+        if encontrado:
+
+            datos["proveedor"] = encontrado.group(0).strip()
+            break
+
+
+    # 2. Si aún no encontró proveedor,
+    # buscar razón social
+
+    if not datos["proveedor"]:
+
+        patron = re.search(
+            r'([A-ZÁÉÍÓÚÑ0-9&.,\- ]{4,}(?:S\.A\.S|SAS|S\.A|SA|LTDA|E\.U|EU))',
+            texto,
+            re.IGNORECASE
+        )
+
+        if patron:
+
+            datos["proveedor"] = patron.group(1).strip()
+
+    else:
+
+        # 2. Buscar entidades bancarias conocidas
+        bancos = [
+
+            "BANCOLOMBIA",
+            "BANCO DE BOGOTA",
+            "BANCO DE OCCIDENTE",
+            "BANCO POPULAR",
+            "BANCO AV VILLAS",
+            "DAVIVIENDA",
+            "DAVIPLATA",
+            "BBVA",
+            "SCOTIABANK",
+            "COLPATRIA",
+            "BANCO AGRARIO",
+            "NEQUI",
+
+            "BANCO FALABELLA",
+            "BANCO CAJA SOCIAL",
+            "BANCOOMEVA",
+            "ITAU",
+            "LULO BANK",
+            "BAN100"
+        ]
+
+        for banco in bancos:
+
+            if re.search(r"\b" + re.escape(banco) + r"\b", texto, re.IGNORECASE):
+
+                datos["proveedor"] = banco
+                datos["banco"] = banco
+                break
+
+        # 3. Buscar comercios conocidos solamente si aún no encontró proveedor
+        if not datos["proveedor"]:
+
+            comercios = [
+
+                "EXITO",
+                "CARULLA",
+                "SURTIMAX",
+                "OLIMPICA",
+                "ARA",
+                "D1",
+                "ISIMO",
+                "JUMBO",
+                "METRO",
+                "ALKOSTO",
+                "KTRONIX",
+
+                "LA REBAJA",
+                "REBAJA PLUS",
+                "CRUZ VERDE",
+                "FARMATODO",
+                "LOCATEL",
+
+                "HOMECENTER",
+                "EASY",
+                "PANAMERICANA",
+
+                "TERPEL",
+                "PRIMAX",
+                "BIOMAX",
+                "TEXACO",
+                "ESSO",
+
+                "CLARO",
+                "MOVISTAR",
+                "TIGO",
+                "WOM",
+                "DIRECTV",
+
+                "ENEL",
+                "EPM",
+                "EMCALI"
+            ]
+
+            for comercio in comercios:
+
+                if re.search(r"\b" + re.escape(comercio) + r"\b", texto, re.IGNORECASE):
+
+                    datos["proveedor"] = comercio
+                    break
 
     #-------------------CLIENTE------------
 

@@ -48,20 +48,28 @@ def elegir_numero_factura(ocr, vision):
     if not ocr:
         return vision
 
+    ocr = str(ocr).strip()
+    vision = str(vision).strip()
+
     # Si ambos son iguales
     if ocr == vision:
         return ocr
 
-    # Si uno contiene al otro, usar el más largo
+    # Si uno contiene al otro, conservar el más completo
     if ocr in vision:
         return vision
 
     if vision in ocr:
         return ocr
 
-    # Si tienen longitudes parecidas, confiar en visión
-    if abs(len(vision) - len(ocr)) <= 2:
+    # Si la IA devuelve menos caracteres, conservar OCR
+    if len(vision) < len(ocr):
+        return ocr
+
+    # Si la IA devuelve más caracteres, usar IA
+    if len(vision) > len(ocr):
         return vision
 
-    # Si no, conservar OCR
-    return ocr
+    # Misma longitud:
+    # la IA puede haber corregido caracteres como G↔6, O↔0, I↔1
+    return vision
