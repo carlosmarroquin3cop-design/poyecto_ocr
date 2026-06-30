@@ -292,8 +292,24 @@ def extraer_con_regex(texto: str) -> dict:
         texto
     )
 
+
     if patron:
         datos["fecha"] = patron.group(1)
+
+    else:
+
+        patron = re.search(
+            r'(\d{2})[/-](\d{2})[/-](\d{4})',
+            texto
+        )
+
+        if patron:
+
+            dia = patron.group(1)
+            mes = patron.group(2)
+            anio = patron.group(3)
+
+            datos["fecha"] = f"{anio}-{mes}-{dia}"
 
 
     #---------TOTAL-----------------
@@ -303,7 +319,11 @@ def extraer_con_regex(texto: str) -> dict:
         "TOTAL A PAGAR",
         "VALOR TOTAL",
         "VALOR VENTA",
-        "SUBTOTAL"
+        "SUBTOTAL",
+        "VALOR PAGO",
+        "VALOR CONSIGNADO",
+        "VALOR TRANSACCION",
+        "VALOR TRANSACCIÓN",
     ]
 
     lineas = texto.splitlines()
@@ -319,9 +339,11 @@ def extraer_con_regex(texto: str) -> dict:
             bloque = "\n".join(lineas[i:i+3])
 
             # Buscar únicamente valores precedidos por $
+            # Buscar el valor inmediatamente después de ":"
             encontrados = re.findall(
-                r'\$\s*([\d][\d\.,]{2,})',
-                bloque
+                rf"{re.escape(prioridad)}\s*(?:\:|=>)?\s*\$?\s*([\d][\d\.,]*)",
+                bloque,
+                re.IGNORECASE
             )
 
             if encontrados:
